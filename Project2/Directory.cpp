@@ -121,21 +121,37 @@ void Directory::listDirectories()
 	std::cout << std::endl;
 }
 
+/// <summary>
+///	This function runs through the directories being cloned at the same time as it creates them in the dir location.
+///			|					|					|					|
+///			|					|					|					|
+///			|					|					|					|
+///			| cloned directory	|					| dir location		|
+///			|					|					|					|
+///			|					|					|					|
+///		It helps to think of the cloned directory and the dir location as being ran through in parallel. 
+///		As we get directories A, B, C from cloned directory they are then added by queify to dir location
+///		Then we go into A's subdirectories if any and do the same thing. Once A's subdirectories and next 
+///		directories are exhausted the function calls goup then attempts to find the next subdirectory
+///		This repeats until the directoryStack is empty.
+/// </summary>
+/// <param name="dir">The location to copy the current directory and subdirectories to</param>
 void Directory::clone(std::string dir)
 {
-	DirectoryNodeStack<Queue<DirectoryNode>>* queueStack = new DirectoryNodeStack<Queue<DirectoryNode>>;
+	DirectoryNodeStack<Queue<DirectoryNode>>* queueStack = new DirectoryNodeStack<Queue<DirectoryNode>>; 
 	DirectoryNodeStack<DirectoryNode>* directoryStack = new DirectoryNodeStack <DirectoryNode>;
 
 	//pos used to navigate the directory being cloned, hold holds the intial pos position. Do not change hold
-	DirectoryNode* pos = (curr->sub != nullptr) ? curr->sub : curr;
+	DirectoryNode* pos = (curr->sub != nullptr) ? curr->sub : curr;		//pos is used to traverse the cloned side at the same time as creating its elements at the dir location
 	DirectoryNode* hold = pos;
 
+	//go to the clone directory
 	getToDirectory(dir);
 	DirectoryNode* cloneDir = curr;
 
 	//initial queue, "current" level of the directory structure
 	Queue<DirectoryNode>* queue = new Queue<DirectoryNode>;
-	queify(pos, queue);
+	queify(pos, queue);	//add queues elements to the clone directory
 	
 	std::string path;
 	bool run = true;
@@ -144,25 +160,24 @@ void Directory::clone(std::string dir)
 		while (true)
 		{
 			queue->dequeue(pos);
-			while (pos->sub != nullptr)
+			while (pos->sub != nullptr)		//continue until at the very bottom left
 			{
 				queueStack->push(queue);
-				Queue<DirectoryNode>* queue = new Queue<DirectoryNode>;
 
+				//gets the path of the next location and attempts to go to it in the clone directory
 				path = getPath() + "/" + pos->name;
 				while (!getToDirectory(path)) {	
 					goup();
 					path = getPath() + "/" + pos->name;
 				};
 				pos = pos->sub;
-				queify(pos, queue);
-				listDirectories();
+				queify(pos, queue);	//add queues elements to the clone directory
 				break;
 			}
 			if (queue->empty()) { break; }
 		}	 
-		if (queueStack->empty()) { run = false; break; };
-		if (!queueStack->empty())
+		if (queueStack->empty()) { run = false; break; };		//if queueStack is empty then the clone function has finished
+		if (!queueStack->empty())	//if stack is not empty then pop its queue and use that for cloning
 		{
 			Queue<DirectoryNode>* q = new Queue<DirectoryNode>;
 			queueStack->pop(q);
@@ -299,13 +314,14 @@ bool Directory::gotoDirectory(std::string path) //helper function for gotoDir
 }
 
 /// <summary>
+/// Adds the elements from the queue to the current directory
 /// Note: After using queify, pos will be at nullptr. Set pos back to correct location 
 /// </summary>
 /// <param name="pos"></param>
 /// <param name="queue"></param>
 void Directory::queify(DirectoryNode* pos, Queue<DirectoryNode>*& queue)
 {
-	while (pos != nullptr)
+	while (pos != nullptr) 
 	{
 		queue->enqueue(pos);
 		add(pos->name);
